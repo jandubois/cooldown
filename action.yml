@@ -1,0 +1,35 @@
+name: Cooldown
+description: Verify Dependabot PRs propose the latest available version
+inputs:
+  dependencies-json:
+    description: The updated-dependencies-json output from dependabot/fetch-metadata
+    required: true
+  github-token:
+    description: GitHub token for API rate limits (read-only access suffices)
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Download cooldown
+      shell: bash
+      run: |
+        version="${{ github.action_ref }}"
+        if [ -z "$version" ]; then
+          version="latest"
+        fi
+        os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+        arch="$(uname -m)"
+        case "$arch" in
+          x86_64) arch="amd64" ;;
+          aarch64|arm64) arch="arm64" ;;
+        esac
+        url="https://github.com/jandubois/cooldown/releases/download/${version}/cooldown-${os}-${arch}"
+        curl --silent --location --fail "$url" --output "${{ github.action_path }}/cooldown"
+        chmod +x "${{ github.action_path }}/cooldown"
+    - name: Run check
+      shell: bash
+      env:
+        DEPENDENCIES_JSON: ${{ inputs.dependencies-json }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: ${{ github.action_path }}/cooldown check
