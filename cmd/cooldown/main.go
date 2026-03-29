@@ -68,7 +68,7 @@ func run() int {
 		case r.Stale:
 			fmt.Printf("  STALE %s: proposed %s, latest %s\n", r.Name, r.Proposed, r.Latest)
 		default:
-			fmt.Printf("  OK    %s @ %s\n", r.Name, r.Proposed)
+			fmt.Printf("  OK    %s @ %s (latest in v%d.x: %s)\n", r.Name, r.Proposed, r.Proposed.Major, r.Latest)
 		}
 	}
 	fmt.Println()

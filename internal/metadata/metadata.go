@@ -8,14 +8,14 @@ import (
 
 // Dependency represents a single dependency update from a Dependabot PR.
 type Dependency struct {
-	Name       string `json:"dependency-name"`
-	Type       string `json:"dependency-type"`
-	UpdateType string `json:"update-type"`
-	Ecosystem  string `json:"package-ecosystem"`
-	Directory  string `json:"directory"`
-	NewVersion string `json:"new-version"`
-	PrevVersion string `json:"previous-version"`
-	Group      string `json:"dependency-group"`
+	Name        string `json:"dependencyName"`
+	Type        string `json:"dependencyType"`
+	UpdateType  string `json:"updateType"`
+	Ecosystem   string `json:"packageEcosystem"`
+	Directory   string `json:"directory"`
+	NewVersion  string `json:"newVersion"`
+	PrevVersion string `json:"prevVersion"`
+	Group       string `json:"dependencyGroup"`
 }
 
 // Parse parses the JSON array from the fetch-metadata updated-dependencies-json output.
