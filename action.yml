@@ -2,15 +2,22 @@ name: Cooldown
 description: Verify Dependabot PRs propose the latest available version
 inputs:
   dependencies-json:
-    description: The updated-dependencies-json output from dependabot/fetch-metadata
-    required: true
+    description: The updated-dependencies-json output from dependabot/fetch-metadata (optional — fetched automatically if omitted)
+    required: false
+    default: ""
   github-token:
     description: GitHub token for API access (read-only access suffices)
     required: false
-    default: ""
+    default: ${{ github.token }}
 runs:
   using: composite
   steps:
+    - name: Fetch Dependabot metadata
+      if: inputs.dependencies-json == ''
+      id: metadata
+      uses: dependabot/fetch-metadata@08eff52bf64351f401fb50d4972fa95b9f2c2d1b # v2.4.0
+      with:
+        github-token: ${{ inputs.github-token }}
     - name: Download cooldown
       shell: bash
       env:
@@ -46,6 +53,6 @@ runs:
     - name: Run check
       shell: bash
       env:
-        DEPENDENCIES_JSON: ${{ inputs.dependencies-json }}
+        DEPENDENCIES_JSON: ${{ inputs.dependencies-json || steps.metadata.outputs.updated-dependencies-json }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: ${{ github.action_path }}/cooldown check

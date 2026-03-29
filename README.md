@@ -84,7 +84,7 @@ jobs:
 
 ### As a GitHub Action
 
-For repos without Go, use the action directly. It downloads a pre-built binary from an [immutable release](https://docs.github.com/en/repositories/releasing-projects-on-github/preventing-changes-to-your-releases) — no Go toolchain required.
+For repos without Go, use the action directly. It downloads a pre-built binary from an [immutable release](https://docs.github.com/en/repositories/releasing-projects-on-github/preventing-changes-to-your-releases) — no Go toolchain required. The action runs `dependabot/fetch-metadata` automatically.
 
 ```yaml
 name: Dependabot Cooldown Check
@@ -96,6 +96,14 @@ jobs:
   cooldown:
     runs-on: ubuntu-latest
     steps:
+      - name: Cooldown check
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        uses: jandubois/cooldown@v1
+```
+
+To control the `dependabot/fetch-metadata` version yourself, run it separately and pass the output:
+
+```yaml
       - name: Fetch Dependabot metadata
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         id: metadata
@@ -103,12 +111,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check versions are latest
+      - name: Cooldown check
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         uses: jandubois/cooldown@v1
         with:
           dependencies-json: ${{ steps.metadata.outputs.updated-dependencies-json }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Non-Dependabot PRs
