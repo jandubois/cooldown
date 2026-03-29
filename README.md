@@ -80,7 +80,25 @@ jobs:
 
 ### As a GitHub Action
 
+For repos without Go, use the action directly. It downloads a pre-built binary — no Go toolchain required.
+
 ```yaml
+name: Dependabot Cooldown Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  cooldown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check versions are latest
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         uses: jandubois/cooldown@v1
