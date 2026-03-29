@@ -31,6 +31,10 @@ Cooldown supports three ecosystems:
 
 Unsupported ecosystems and registry errors pass silently (fail-open).
 
+When a check fails, the job summary shows which dependencies are outdated, links to the newer release, and includes the release notes in a collapsed section:
+
+![Cooldown check failing on a Dependabot PR that proposes vite 8.0.2 while 8.0.3 is available](docs/cooldown-check-failed.png)
+
 ## Usage
 
 ### With `go tool` (Go 1.24+)
