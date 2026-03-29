@@ -13,6 +13,7 @@ import (
 
 	"github.com/jandubois/cooldown/internal/checker"
 	"github.com/jandubois/cooldown/internal/metadata"
+	"github.com/jandubois/cooldown/internal/reporting"
 )
 
 func main() {
@@ -58,7 +59,7 @@ func run() int {
 
 	results := c.Check(ctx, deps)
 
-	// Print summary
+	// Print summary to stdout
 	fmt.Println()
 	for _, r := range results {
 		switch {
@@ -71,6 +72,14 @@ func run() int {
 		}
 	}
 	fmt.Println()
+
+	// GitHub Actions annotations (::error, ::warning)
+	reporting.WriteAnnotations(os.Stdout, results)
+
+	// GitHub Actions job summary (markdown table)
+	if err := reporting.WriteJobSummary(results); err != nil {
+		log.Printf("failed to write job summary: %v", err)
+	}
 
 	if checker.HasStale(results) {
 		log.Println("one or more dependencies are not at the latest version")
