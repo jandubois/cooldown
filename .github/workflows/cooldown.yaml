@@ -8,26 +8,26 @@ jobs:
   cooldown:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - name: Checkout
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Go
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version-file: go.mod
+    - name: Set up Go
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+      with:
+        go-version-file: go.mod
 
-      - name: Fetch Dependabot metadata
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        id: metadata
-        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch Dependabot metadata
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      id: metadata
+      uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check versions are latest
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        env:
-          DEPENDENCIES_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: go run ./cmd/cooldown/ check
+    - name: Check versions are latest
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      env:
+        DEPENDENCIES_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: go run ./cmd/cooldown/ check

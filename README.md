@@ -57,29 +57,29 @@ jobs:
   cooldown:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+    - name: Checkout
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Set up Go
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version-file: go.mod
+    - name: Set up Go
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      with:
+        go-version-file: go.mod
 
-      - name: Fetch Dependabot metadata
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        id: metadata
-        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch Dependabot metadata
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      id: metadata
+      uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check versions are latest
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        env:
-          DEPENDENCIES_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: go tool cooldown check
+    - name: Check versions are latest
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      env:
+        DEPENDENCIES_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: go tool cooldown check
 ```
 
 ### As a GitHub Action
@@ -96,27 +96,27 @@ jobs:
   cooldown:
     runs-on: ubuntu-latest
     steps:
-      - name: Cooldown check
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: jandubois/cooldown@a6b75d6cf4b7845675a2ef0168e99528af4f4821 # v1.0.0
+    - name: Cooldown check
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      uses: jandubois/cooldown@a6b75d6cf4b7845675a2ef0168e99528af4f4821 # v1.0.0
 ```
 
 To control the `dependabot/fetch-metadata` version yourself, run it separately and pass the output:
 
 ```yaml
-      - name: Fetch Dependabot metadata
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        id: metadata
-        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Fetch Dependabot metadata
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      id: metadata
+      uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cooldown check
-        if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: jandubois/cooldown@a6b75d6cf4b7845675a2ef0168e99528af4f4821 # v1.0.0
-        with:
-          dependencies-json: ${{ steps.metadata.outputs.updated-dependencies-json }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Cooldown check
+      if: github.event.pull_request.user.login == 'dependabot[bot]'
+      uses: jandubois/cooldown@a6b75d6cf4b7845675a2ef0168e99528af4f4821 # v1.0.0
+      with:
+        dependencies-json: ${{ steps.metadata.outputs.updated-dependencies-json }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Non-Dependabot PRs

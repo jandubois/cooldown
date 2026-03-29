@@ -16,21 +16,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Fetch Dependabot metadata
-      if: inputs.dependencies-json == ''
-      id: metadata
-      uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
-      with:
-        github-token: ${{ inputs.github-token }}
-    - name: Set up Go
-      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-      with:
-        go-version: stable
-        cache: false
-    - name: Run cooldown check
-      shell: bash
-      env:
-        DEPENDENCIES_JSON: ${{ inputs.dependencies-json || steps.metadata.outputs.updated-dependencies-json }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
-        COOLDOWN_STRICT: ${{ inputs.strict }}
-      run: cd "${{ github.action_path }}" && go run ./cmd/cooldown/ check
+  - name: Fetch Dependabot metadata
+    if: inputs.dependencies-json == ''
+    id: metadata
+    uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+    with:
+      github-token: ${{ inputs.github-token }}
+  - name: Set up Go
+    uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+    with:
+      go-version: stable
+      cache: false
+  - name: Run cooldown check
+    shell: bash
+    env:
+      DEPENDENCIES_JSON: ${{ inputs.dependencies-json || steps.metadata.outputs.updated-dependencies-json }}
+      GITHUB_TOKEN: ${{ inputs.github-token }}
+      COOLDOWN_STRICT: ${{ inputs.strict }}
+    run: cd "${{ github.action_path }}" && go run ./cmd/cooldown/ check
