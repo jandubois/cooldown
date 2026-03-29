@@ -18,8 +18,11 @@ func WriteAnnotations(w io.Writer, results []checker.Result) {
 	for _, r := range results {
 		switch {
 		case r.Stale:
-			fmt.Fprintf(w, "::error title=%s is outdated::%s %s is available (proposed %s)\n",
-				r.Name, r.Name, r.Latest, r.Proposed)
+			msg := fmt.Sprintf("%s %s is available (proposed %s)", r.Name, r.Latest, r.Proposed)
+			if r.ReleaseURL != "" {
+				msg += " — " + r.ReleaseURL
+			}
+			fmt.Fprintf(w, "::error title=%s is outdated::%s\n", r.Name, msg)
 		case r.Skipped:
 			fmt.Fprintf(w, "::warning title=%s skipped::%s\n",
 				r.Name, r.Reason)
@@ -60,8 +63,9 @@ func writeSummaryMarkdown(w io.Writer, results []checker.Result) error {
 	for _, r := range results {
 		switch {
 		case r.Stale:
-			fmt.Fprintf(&b, "| %s | %s | %s | **%s** | :x: outdated |\n",
-				r.Name, r.Ecosystem, r.Proposed, r.Latest)
+			latestCol := formatLatestWithLink(r)
+			fmt.Fprintf(&b, "| %s | %s | %s | %s | :x: outdated |\n",
+				r.Name, r.Ecosystem, r.Proposed, latestCol)
 		case r.Skipped:
 			fmt.Fprintf(&b, "| %s | %s | | | :warning: %s |\n",
 				r.Name, r.Ecosystem, r.Reason)
@@ -73,8 +77,27 @@ func writeSummaryMarkdown(w io.Writer, results []checker.Result) error {
 
 	b.WriteString("\n")
 
+	// Append collapsed release notes for each stale dependency
+	for _, r := range results {
+		if !r.Stale || r.ReleaseBody == "" {
+			continue
+		}
+		fmt.Fprintf(&b, "<details>\n<summary>%s %s release notes</summary>\n\n", r.Name, r.Latest)
+		b.WriteString(r.ReleaseBody)
+		b.WriteString("\n\n</details>\n\n")
+	}
+
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// formatLatestWithLink returns the latest version as a bold markdown link
+// if a release URL is available, or just bold text otherwise.
+func formatLatestWithLink(r checker.Result) string {
+	if r.ReleaseURL != "" {
+		return fmt.Sprintf("[**%s**](%s)", r.Latest, r.ReleaseURL)
+	}
+	return fmt.Sprintf("**%s**", r.Latest)
 }
 
 func hasStale(results []checker.Result) bool {

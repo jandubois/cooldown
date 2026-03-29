@@ -14,13 +14,15 @@ import (
 
 // Result describes the outcome of checking a single dependency.
 type Result struct {
-	Name      string
-	Ecosystem string
-	Proposed  version.Version
-	Latest    version.Version
-	Stale     bool   // true if a newer version exists within the same major
-	Skipped   bool   // true if the ecosystem is unsupported or a lookup error occurred
-	Reason    string // explanation when skipped
+	Name        string
+	Ecosystem   string
+	Proposed    version.Version
+	Latest      version.Version
+	Stale       bool   // true if a newer version exists within the same major
+	Skipped     bool   // true if the ecosystem is unsupported or a lookup error occurred
+	Reason      string // explanation when skipped
+	ReleaseURL  string // link to the latest version's release page
+	ReleaseBody string // release notes markdown for the latest version
 }
 
 // Checker verifies that Dependabot PRs propose the latest version.
@@ -31,11 +33,26 @@ type Checker struct {
 
 // Check examines each dependency and reports whether its proposed version
 // is the latest available within the same major version line.
+// For stale dependencies, it also fetches release notes.
 func (c *Checker) Check(ctx context.Context, deps []metadata.Dependency) []Result {
 	var results []Result
 
+	fetcher := &registry.ReleaseNotesFetcher{
+		Client:      c.HTTPClient,
+		GitHubToken: c.GitHubToken,
+	}
+
 	for _, dep := range deps {
 		r := c.checkOne(ctx, dep)
+		if r.Stale {
+			info, err := fetcher.Fetch(ctx, r.Ecosystem, r.Name, r.Latest)
+			if err != nil {
+				log.Printf("failed to fetch release notes for %s: %v", r.Name, err)
+			} else if info != nil {
+				r.ReleaseURL = info.URL
+				r.ReleaseBody = info.Body
+			}
+		}
 		results = append(results, r)
 	}
 
