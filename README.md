@@ -55,18 +55,18 @@ jobs:
     steps:
       - name: Checkout
         if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Go
         if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
 
       - name: Fetch Dependabot metadata
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,7 +95,7 @@ jobs:
       - name: Fetch Dependabot metadata
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
