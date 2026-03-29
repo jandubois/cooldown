@@ -67,6 +67,30 @@ func HasStale(results []Result) bool {
 	return false
 }
 
+// HasSkipped reports whether any result was skipped.
+func HasSkipped(results []Result) bool {
+	for _, r := range results {
+		if r.Skipped {
+			return true
+		}
+	}
+	return false
+}
+
+// AllSkipped reports whether every result was skipped (nothing was checked).
+// Returns false for empty results.
+func AllSkipped(results []Result) bool {
+	if len(results) == 0 {
+		return false
+	}
+	for _, r := range results {
+		if !r.Skipped {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *Checker) checkOne(ctx context.Context, dep metadata.Dependency) Result {
 	result := Result{
 		Name:      dep.Name,

@@ -25,6 +25,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nEnvironment variables:\n")
 		fmt.Fprintf(os.Stderr, "  DEPENDENCIES_JSON  JSON from dependabot/fetch-metadata (required)\n")
 		fmt.Fprintf(os.Stderr, "  GITHUB_TOKEN       GitHub token for API rate limits (optional)\n")
+		fmt.Fprintf(os.Stderr, "  COOLDOWN_STRICT    Set to 'true' to fail on any skipped dependency (optional)\n")
 		os.Exit(2)
 	}
 
@@ -83,6 +84,17 @@ func run() int {
 
 	if checker.HasStale(results) {
 		log.Println("one or more dependencies are not at the latest version")
+		return 1
+	}
+
+	if checker.AllSkipped(results) {
+		log.Println("all dependencies were skipped; none were actually checked")
+		return 1
+	}
+
+	strict := os.Getenv("COOLDOWN_STRICT") != "" && os.Getenv("COOLDOWN_STRICT") != "false"
+	if strict && checker.HasSkipped(results) {
+		log.Println("some dependencies were skipped (strict mode)")
 		return 1
 	}
 

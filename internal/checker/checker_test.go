@@ -175,6 +175,27 @@ func TestHasStaleAllCurrent(t *testing.T) {
 	}
 }
 
+func TestAllSkipped(t *testing.T) {
+	if !AllSkipped([]Result{{Skipped: true}, {Skipped: true}}) {
+		t.Error("AllSkipped should return true when all are skipped")
+	}
+	if AllSkipped([]Result{{Skipped: true}, {Skipped: false}}) {
+		t.Error("AllSkipped should return false when some are not skipped")
+	}
+	if AllSkipped([]Result{}) {
+		t.Error("AllSkipped should return false for empty results")
+	}
+}
+
+func TestHasSkipped(t *testing.T) {
+	if !HasSkipped([]Result{{Skipped: false}, {Skipped: true}}) {
+		t.Error("HasSkipped should return true when any is skipped")
+	}
+	if HasSkipped([]Result{{Skipped: false}, {Skipped: false}}) {
+		t.Error("HasSkipped should return false when none are skipped")
+	}
+}
+
 // checkWithBaseURL runs the checker with a custom base URL for all registries.
 // This works because the checker creates registries via ForEcosystem, but we
 // need to override the base URLs for testing. We do this by directly calling
