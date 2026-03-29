@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jandubois/cooldown/internal/checker"
+	"github.com/jandubois/cooldown/internal/registry"
 )
 
 // WriteAnnotations writes GitHub Actions workflow commands for each result.
@@ -19,8 +20,8 @@ func WriteAnnotations(w io.Writer, results []checker.Result) {
 		switch {
 		case r.Stale:
 			msg := fmt.Sprintf("%s %s is available (proposed %s)", r.Name, r.Latest, r.Proposed)
-			if r.ReleaseURL != "" {
-				msg += " — " + r.ReleaseURL
+			if r.Changelog != nil && r.Changelog.CompareURL != "" {
+				msg += " — " + r.Changelog.CompareURL
 			}
 			fmt.Fprintf(w, "::error title=%s is outdated::%s\n", r.Name, msg)
 		case r.Skipped:
@@ -77,25 +78,78 @@ func writeSummaryMarkdown(w io.Writer, results []checker.Result) error {
 
 	b.WriteString("\n")
 
-	// Append collapsed release notes for each stale dependency
+	// Append changelog sections for each stale dependency
 	for _, r := range results {
-		if !r.Stale || r.ReleaseBody == "" {
+		if !r.Stale || r.Changelog == nil {
 			continue
 		}
-		fmt.Fprintf(&b, "<details>\n<summary>%s %s release notes</summary>\n\n", r.Name, r.Latest)
-		b.WriteString(r.ReleaseBody)
-		b.WriteString("\n\n</details>\n\n")
+		writeChangelog(&b, r)
 	}
 
 	_, err := io.WriteString(w, b.String())
 	return err
 }
 
+// writeChangelog formats release notes for a stale dependency, matching
+// the style Dependabot uses in PR descriptions: release notes in collapsed
+// sections, plus a compare link.
+func writeChangelog(b *strings.Builder, r checker.Result) {
+	cl := r.Changelog
+
+	fmt.Fprintf(b, "---\n\n#### %s: %s → %s\n\n", r.Name, r.Proposed, r.Latest)
+
+	if len(cl.Releases) > 0 {
+		writeReleaseNotes(b, cl)
+	}
+
+	if cl.CompareURL != "" {
+		fmt.Fprintf(b, "[View changes on GitHub](%s)\n\n", cl.CompareURL)
+	}
+}
+
+func writeReleaseNotes(b *strings.Builder, cl *registry.Changelog) {
+	// Single release: show inline. Multiple: each in a collapsed section.
+	if len(cl.Releases) == 1 {
+		r := cl.Releases[0]
+		b.WriteString("<details>\n")
+		fmt.Fprintf(b, "<summary>Release notes</summary>\n")
+		fmt.Fprintf(b, "<em>Sourced from <a href=\"https://github.com/%s/%s/releases\">%s/%s's releases</a>.</em>\n",
+			cl.Owner, cl.Repo, cl.Owner, cl.Repo)
+		b.WriteString("<blockquote>\n\n")
+		if r.Body != "" {
+			b.WriteString(r.Body)
+		} else {
+			fmt.Fprintf(b, "*No release notes provided for %s.*", r.Tag)
+		}
+		b.WriteString("\n\n</blockquote>\n</details>\n\n")
+		return
+	}
+
+	b.WriteString("<details>\n")
+	fmt.Fprintf(b, "<summary>Release notes (%d versions)</summary>\n",
+		len(cl.Releases))
+	fmt.Fprintf(b, "<em>Sourced from <a href=\"https://github.com/%s/%s/releases\">%s/%s's releases</a>.</em>\n",
+		cl.Owner, cl.Repo, cl.Owner, cl.Repo)
+	b.WriteString("<blockquote>\n\n")
+
+	for _, r := range cl.Releases {
+		fmt.Fprintf(b, "**[%s](%s)**\n\n", r.Tag, r.URL)
+		if r.Body != "" {
+			b.WriteString(r.Body)
+		} else {
+			fmt.Fprintf(b, "*No release notes provided for %s.*", r.Tag)
+		}
+		b.WriteString("\n\n")
+	}
+
+	b.WriteString("</blockquote>\n</details>\n\n")
+}
+
 // formatLatestWithLink returns the latest version as a bold markdown link
-// if a release URL is available, or just bold text otherwise.
+// if a compare URL is available, or just bold text otherwise.
 func formatLatestWithLink(r checker.Result) string {
-	if r.ReleaseURL != "" {
-		return fmt.Sprintf("[**%s**](%s)", r.Latest, r.ReleaseURL)
+	if r.Changelog != nil && r.Changelog.CompareURL != "" {
+		return fmt.Sprintf("[**%s**](%s)", r.Latest, r.Changelog.CompareURL)
 	}
 	return fmt.Sprintf("**%s**", r.Latest)
 }

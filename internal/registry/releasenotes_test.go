@@ -19,85 +19,107 @@ func mustParse(t *testing.T, s string) version.Version {
 	return v
 }
 
-func TestFetchGitHubActions(t *testing.T) {
+func TestFetchChangelogGitHubActions(t *testing.T) {
+	releases := []ghReleaseNotes{
+		{TagName: "v4.3.0", HTMLURL: "https://github.com/actions/checkout/releases/tag/v4.3.0", Body: "### v4.3.0\n* New feature"},
+		{TagName: "v4.2.0", HTMLURL: "https://github.com/actions/checkout/releases/tag/v4.2.0", Body: "### v4.2.0\n* Bug fix"},
+		{TagName: "v4.1.0", HTMLURL: "https://github.com/actions/checkout/releases/tag/v4.1.0", Body: "### v4.1.0\n* Old"},
+		{TagName: "v3.6.0", HTMLURL: "https://github.com/actions/checkout/releases/tag/v3.6.0", Body: "v3"},
+		{TagName: "v5.0.0-beta", HTMLURL: "url", Body: "beta", Prerelease: true},
+	}
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/repos/actions/checkout/releases/tags/v4.1.2" {
-			json.NewEncoder(w).Encode(map[string]string{
-				"html_url": "https://github.com/actions/checkout/releases/tag/v4.1.2",
-				"body":     "## What's Changed\n* Fix sparse checkout",
-			}) //nolint:errcheck
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("page") == "2" {
+			json.NewEncoder(w).Encode([]ghReleaseNotes{}) //nolint:errcheck
 			return
 		}
-		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(releases) //nolint:errcheck
 	}))
 	defer srv.Close()
 
-	f := &ReleaseNotesFetcher{
-		Client:        srv.Client(),
-		GitHubBaseURL: srv.URL,
+	f := &ReleaseNotesFetcher{Client: srv.Client(), GitHubBaseURL: srv.URL}
+
+	cl, err := f.FetchChangelog(context.Background(), "github_actions", "actions/checkout",
+		mustParse(t, "v4.1.0"), mustParse(t, "v4.3.0"))
+	if err != nil {
+		t.Fatalf("FetchChangelog() error: %v", err)
+	}
+	if cl == nil {
+		t.Fatal("FetchChangelog() returned nil")
 	}
 
-	info, err := f.Fetch(context.Background(), "github_actions", "actions/checkout", mustParse(t, "v4.1.2"))
-	if err != nil {
-		t.Fatalf("Fetch() error: %v", err)
+	// Should include v4.2.0 and v4.3.0 (not v4.1.0, v3.6.0, or v5.0.0-beta)
+	if len(cl.Releases) != 2 {
+		t.Fatalf("got %d releases, want 2: %v", len(cl.Releases), cl.Releases)
 	}
-	if info == nil {
-		t.Fatal("Fetch() returned nil")
+	if cl.Releases[0].Tag != "v4.2.0" {
+		t.Errorf("releases[0].Tag = %q, want v4.2.0", cl.Releases[0].Tag)
 	}
-	if info.URL != "https://github.com/actions/checkout/releases/tag/v4.1.2" {
-		t.Errorf("URL = %q", info.URL)
+	if cl.Releases[1].Tag != "v4.3.0" {
+		t.Errorf("releases[1].Tag = %q, want v4.3.0", cl.Releases[1].Tag)
 	}
-	if info.Body != "## What's Changed\n* Fix sparse checkout" {
-		t.Errorf("Body = %q", info.Body)
+
+	if cl.CompareURL != "https://github.com/actions/checkout/compare/v4.1.0...v4.3.0" {
+		t.Errorf("CompareURL = %q", cl.CompareURL)
 	}
 }
 
-func TestFetchGoModule(t *testing.T) {
+func TestFetchChangelogGoModule(t *testing.T) {
+	releases := []ghReleaseNotes{
+		{TagName: "v1.10.0", HTMLURL: "url1", Body: "Release v1.10.0"},
+		{TagName: "v1.9.0", HTMLURL: "url2", Body: "Release v1.9.0"},
+		{TagName: "v1.8.0", HTMLURL: "url3", Body: "Release v1.8.0"},
+	}
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/repos/stretchr/testify/releases/tags/v1.9.0" {
-			json.NewEncoder(w).Encode(map[string]string{
-				"html_url": "https://github.com/stretchr/testify/releases/tag/v1.9.0",
-				"body":     "Release v1.9.0",
-			}) //nolint:errcheck
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("page") == "2" {
+			json.NewEncoder(w).Encode([]ghReleaseNotes{}) //nolint:errcheck
 			return
 		}
-		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(releases) //nolint:errcheck
 	}))
 	defer srv.Close()
 
-	f := &ReleaseNotesFetcher{
-		Client:        srv.Client(),
-		GitHubBaseURL: srv.URL,
+	f := &ReleaseNotesFetcher{Client: srv.Client(), GitHubBaseURL: srv.URL}
+
+	cl, err := f.FetchChangelog(context.Background(), "gomod", "github.com/stretchr/testify",
+		mustParse(t, "v1.8.0"), mustParse(t, "v1.10.0"))
+	if err != nil {
+		t.Fatalf("FetchChangelog() error: %v", err)
 	}
 
-	info, err := f.Fetch(context.Background(), "gomod", "github.com/stretchr/testify", mustParse(t, "v1.9.0"))
-	if err != nil {
-		t.Fatalf("Fetch() error: %v", err)
+	// Should include v1.9.0 and v1.10.0
+	if len(cl.Releases) != 2 {
+		t.Fatalf("got %d releases, want 2", len(cl.Releases))
 	}
-	if info == nil {
-		t.Fatal("Fetch() returned nil")
-	}
-	if info.Body != "Release v1.9.0" {
-		t.Errorf("Body = %q", info.Body)
+	if cl.Releases[0].Tag != "v1.9.0" {
+		t.Errorf("releases[0].Tag = %q, want v1.9.0", cl.Releases[0].Tag)
 	}
 }
 
-func TestFetchGoModuleNonGitHub(t *testing.T) {
+func TestFetchChangelogGoModuleNonGitHub(t *testing.T) {
 	f := &ReleaseNotesFetcher{Client: http.DefaultClient}
 
-	info, err := f.Fetch(context.Background(), "gomod", "golang.org/x/net", mustParse(t, "v0.17.0"))
+	cl, err := f.FetchChangelog(context.Background(), "gomod", "golang.org/x/net",
+		mustParse(t, "v0.16.0"), mustParse(t, "v0.17.0"))
 	if err != nil {
-		t.Fatalf("Fetch() error: %v", err)
+		t.Fatalf("FetchChangelog() error: %v", err)
 	}
-	if info != nil {
-		t.Errorf("expected nil for non-GitHub module, got %+v", info)
+	if cl != nil {
+		t.Errorf("expected nil for non-GitHub module, got %+v", cl)
 	}
 }
 
-func TestFetchNPM(t *testing.T) {
-	mux := http.NewServeMux()
+func TestFetchChangelogNPM(t *testing.T) {
+	releases := []ghReleaseNotes{
+		{TagName: "v4.22.1", HTMLURL: "url1", Body: "### 4.22.1\n* Security fix"},
+		{TagName: "v4.22.0", HTMLURL: "url2", Body: "### 4.22.0\n* New features"},
+		{TagName: "v4.21.0", HTMLURL: "url3", Body: "### 4.21.0\n* Old"},
+	}
 
-	// npm registry: return repository info
+	mux := http.NewServeMux()
 	mux.HandleFunc("/express/latest", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]any{
 			"repository": map[string]string{
@@ -106,20 +128,14 @@ func TestFetchNPM(t *testing.T) {
 			},
 		}) //nolint:errcheck
 	})
-
-	// GitHub API: return release for the tag
-	mux.HandleFunc("/repos/expressjs/express/releases/tags/v4.22.1", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{
-			"html_url": "https://github.com/expressjs/express/releases/tag/v4.22.1",
-			"body":     "### 4.22.1\n* Security fix",
-		}) //nolint:errcheck
+	mux.HandleFunc("/repos/expressjs/express/releases", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("page") == "2" {
+			json.NewEncoder(w).Encode([]ghReleaseNotes{}) //nolint:errcheck
+			return
+		}
+		json.NewEncoder(w).Encode(releases) //nolint:errcheck
 	})
-
-	// 404 for tag without v prefix
-	mux.HandleFunc("/repos/expressjs/express/releases/tags/4.22.1", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
-
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
@@ -129,53 +145,31 @@ func TestFetchNPM(t *testing.T) {
 		NPMBaseURL:    srv.URL,
 	}
 
-	info, err := f.Fetch(context.Background(), "npm_and_yarn", "express", mustParse(t, "4.22.1"))
+	cl, err := f.FetchChangelog(context.Background(), "npm_and_yarn", "express",
+		mustParse(t, "4.21.0"), mustParse(t, "4.22.1"))
 	if err != nil {
-		t.Fatalf("Fetch() error: %v", err)
+		t.Fatalf("FetchChangelog() error: %v", err)
 	}
-	if info == nil {
-		t.Fatal("Fetch() returned nil")
+	if cl == nil {
+		t.Fatal("FetchChangelog() returned nil")
 	}
-	if info.Body != "### 4.22.1\n* Security fix" {
-		t.Errorf("Body = %q", info.Body)
+
+	// Should include v4.22.0 and v4.22.1 (not v4.21.0)
+	if len(cl.Releases) != 2 {
+		t.Fatalf("got %d releases, want 2", len(cl.Releases))
 	}
 }
 
-func TestFetchUnsupportedEcosystem(t *testing.T) {
+func TestFetchChangelogUnsupportedEcosystem(t *testing.T) {
 	f := &ReleaseNotesFetcher{Client: http.DefaultClient}
 
-	info, err := f.Fetch(context.Background(), "pip", "requests", mustParse(t, "2.31.0"))
+	cl, err := f.FetchChangelog(context.Background(), "pip", "requests",
+		mustParse(t, "2.30.0"), mustParse(t, "2.31.0"))
 	if err != nil {
-		t.Fatalf("Fetch() error: %v", err)
+		t.Fatalf("FetchChangelog() error: %v", err)
 	}
-	if info != nil {
-		t.Errorf("expected nil for unsupported ecosystem, got %+v", info)
-	}
-}
-
-func TestCandidateTags(t *testing.T) {
-	tests := []struct {
-		input string
-		want  []string
-	}{
-		{"v4.1.2", []string{"v4.1.2", "4.1.2"}},
-		{"4.17.21", []string{"v4.17.21", "4.17.21"}},
-		{"v1.0.0-rc.1", []string{"v1.0.0-rc.1", "1.0.0-rc.1"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			v := mustParse(t, tt.input)
-			got := candidateTags(v)
-			if len(got) != len(tt.want) {
-				t.Fatalf("candidateTags(%q) = %v, want %v", tt.input, got, tt.want)
-			}
-			for i := range got {
-				if got[i] != tt.want[i] {
-					t.Errorf("candidateTags(%q)[%d] = %q, want %q", tt.input, i, got[i], tt.want[i])
-				}
-			}
-		})
+	if cl != nil {
+		t.Errorf("expected nil for unsupported ecosystem, got %+v", cl)
 	}
 }
 
@@ -246,31 +240,5 @@ func TestGitHubRepoFromGoModule(t *testing.T) {
 					tt.path, owner, repo, ok, tt.wantOwner, tt.wantRepo, tt.wantOK)
 			}
 		})
-	}
-}
-
-func TestFetchNoRelease(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer srv.Close()
-
-	f := &ReleaseNotesFetcher{
-		Client:        srv.Client(),
-		GitHubBaseURL: srv.URL,
-	}
-
-	info, err := f.Fetch(context.Background(), "github_actions", "actions/checkout", mustParse(t, "v4.1.2"))
-	if err != nil {
-		t.Fatalf("Fetch() error: %v", err)
-	}
-	if info == nil {
-		t.Fatal("expected fallback URL, got nil")
-	}
-	if info.URL != "https://github.com/actions/checkout/releases" {
-		t.Errorf("fallback URL = %q", info.URL)
-	}
-	if info.Body != "" {
-		t.Errorf("expected empty body for fallback, got %q", info.Body)
 	}
 }
