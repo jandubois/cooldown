@@ -84,7 +84,7 @@ jobs:
 
 ### As a GitHub Action
 
-For repos without Go, use the action directly. It downloads a pre-built binary from an [immutable release](https://docs.github.com/en/repositories/releasing-projects-on-github/preventing-changes-to-your-releases) — no Go toolchain required. The action runs `dependabot/fetch-metadata` automatically.
+Use the action directly. It builds from source at the pinned ref — no pre-built binaries in the supply chain. The action sets up Go and runs `dependabot/fetch-metadata` automatically.
 
 ```yaml
 name: Dependabot Cooldown Check

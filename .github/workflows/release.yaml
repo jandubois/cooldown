@@ -21,17 +21,11 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - name: Build binaries
-        run: |
-          mkdir -p dist
-          GOOS=linux GOARCH=amd64 go build -o dist/cooldown-linux-amd64 ./cmd/cooldown/
-          GOOS=linux GOARCH=arm64 go build -o dist/cooldown-linux-arm64 ./cmd/cooldown/
-
-      - name: Create semver release
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" dist/* \
+          gh release create "${{ github.ref_name }}" \
             --title "${{ github.ref_name }}" \
             --generate-notes
 
@@ -39,10 +33,5 @@ jobs:
         run: |
           tag="${{ github.ref_name }}"
           major="${tag%%.*}"
-
-          # Move the floating tag to this commit.
-          # No release is created at this tag — binaries live only in
-          # immutable semver releases. The action resolves the floating
-          # tag to the latest semver release via the GitHub API.
           git tag --force "$major"
           git push --force origin "$major"
