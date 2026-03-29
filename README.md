@@ -98,7 +98,7 @@ jobs:
     steps:
       - name: Cooldown check
         if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: jandubois/cooldown@v1
+        uses: jandubois/cooldown@a6b75d6cf4b7845675a2ef0168e99528af4f4821 # v1.0.0
 ```
 
 To control the `dependabot/fetch-metadata` version yourself, run it separately and pass the output:
@@ -113,9 +113,10 @@ To control the `dependabot/fetch-metadata` version yourself, run it separately a
 
       - name: Cooldown check
         if: github.event.pull_request.user.login == 'dependabot[bot]'
-        uses: jandubois/cooldown@v1
+        uses: jandubois/cooldown@a6b75d6cf4b7845675a2ef0168e99528af4f4821 # v1.0.0
         with:
           dependencies-json: ${{ steps.metadata.outputs.updated-dependencies-json }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Non-Dependabot PRs
