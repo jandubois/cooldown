@@ -84,7 +84,7 @@ jobs:
 
 ### As a GitHub Action
 
-For repos without Go, use the action directly. It downloads a pre-built binary — no Go toolchain required.
+For repos without Go, use the action directly. It downloads a pre-built binary from an [immutable release](https://docs.github.com/en/repositories/releasing-projects-on-github/preventing-changes-to-your-releases) — no Go toolchain required.
 
 ```yaml
 name: Dependabot Cooldown Check
