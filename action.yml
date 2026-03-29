@@ -5,7 +5,7 @@ inputs:
     description: The updated-dependencies-json output from dependabot/fetch-metadata
     required: true
   github-token:
-    description: GitHub token for API rate limits (read-only access suffices)
+    description: GitHub token for API access (read-only access suffices)
     required: false
     default: ""
 runs:
@@ -13,19 +13,35 @@ runs:
   steps:
     - name: Download cooldown
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
-        version="${{ github.action_ref }}"
-        if [ -z "$version" ]; then
-          version="latest"
+        ref="${{ github.action_ref }}"
+        repo="jandubois/cooldown"
+
+        # A floating tag like "v1" has no release — resolve it to the
+        # latest semver release matching that major version prefix.
+        # Full semver tags like "v1.2.3" download directly from their release.
+        if [[ "$ref" =~ ^v[0-9]+$ ]]; then
+          ref=$(gh api "repos/${repo}/releases" \
+            --jq "[.[] | select(.tag_name | startswith(\"${ref}.\")) | .tag_name][0]")
+          if [ -z "$ref" ]; then
+            echo "::error::No release found matching ${{ github.action_ref }}.*"
+            exit 1
+          fi
+          echo "Resolved ${{ github.action_ref }} to ${ref}"
         fi
+
         os="$(uname -s | tr '[:upper:]' '[:lower:]')"
         arch="$(uname -m)"
         case "$arch" in
           x86_64) arch="amd64" ;;
           aarch64|arm64) arch="arm64" ;;
         esac
-        url="https://github.com/jandubois/cooldown/releases/download/${version}/cooldown-${os}-${arch}"
-        curl --silent --location --fail "$url" --output "${{ github.action_path }}/cooldown"
+
+        url="https://github.com/${repo}/releases/download/${ref}/cooldown-${os}-${arch}"
+        curl --silent --location --fail "$url" \
+          --output "${{ github.action_path }}/cooldown"
         chmod +x "${{ github.action_path }}/cooldown"
     - name: Run check
       shell: bash

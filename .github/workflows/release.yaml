@@ -35,21 +35,14 @@ jobs:
             --title "${{ github.ref_name }}" \
             --generate-notes
 
-      - name: Update floating major-version tag and release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Update floating major-version tag
         run: |
           tag="${{ github.ref_name }}"
           major="${tag%%.*}"
 
-          # Move the floating tag to this commit
+          # Move the floating tag to this commit.
+          # No release is created at this tag — binaries live only in
+          # immutable semver releases. The action resolves the floating
+          # tag to the latest semver release via the GitHub API.
           git tag --force "$major"
           git push --force origin "$major"
-
-          # Replace the major-version release so that
-          # releases/download/v1/cooldown-* URLs resolve
-          gh release delete "$major" --yes 2>/dev/null || true
-          gh release create "$major" dist/* \
-            --title "$major" \
-            --notes "Latest ${major}.x release. See [$tag](https://github.com/${{ github.repository }}/releases/tag/$tag) for details." \
-            --latest=false
