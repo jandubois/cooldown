@@ -1,14 +1,3 @@
-# Example: add this workflow to repos that use Dependabot with cooldown.
-#
-# Requires the consuming repo's go.mod to declare:
-#   tool github.com/jandubois/cooldown/cmd/cooldown
-#
-# For non-Go repos, use the action directly instead:
-#   uses: jandubois/cooldown@v1
-#   with:
-#     dependencies-json: ${{ steps.metadata.outputs.updated-dependencies-json }}
-#     github-token: ${{ secrets.GITHUB_TOKEN }}
-
 name: Dependabot Cooldown Check
 
 on:
@@ -41,4 +30,4 @@ jobs:
         env:
           DEPENDENCIES_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: go tool cooldown check
+        run: go run ./cmd/cooldown/ check
